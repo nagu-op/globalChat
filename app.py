@@ -2,13 +2,19 @@ from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import json
-
+import os
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-CHAT_FILE = "chat_history.txt"
-USER_FILE = "users.txt"
+#if error update with the below file
+# CHAT_FILE = "chat_history.txt"
+# USER_FILE = "users.txt"
+
+#if error user above code
+# Read file paths from environment variables
+CHAT_FILE = os.getenv("CHAT_FILE", "chat_history.txt")  # Default to local file if not set
+USER_FILE = os.getenv("USER_FILE", "users.txt")
 
 # Load chat history from file
 def load_chat():
