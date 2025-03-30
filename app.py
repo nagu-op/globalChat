@@ -13,17 +13,20 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 #if error user above code
 # Read file paths from environment variables
+
+
+# Use the /tmp directory (allowed on Render Free Plan)
 CHAT_FILE = os.getenv("CHAT_FILE", "/tmp/chat_history.txt")
 USER_FILE = os.getenv("USER_FILE", "/tmp/users.txt")
 
 # Ensure the user file exists
 def ensure_user_file():
-    os.makedirs(os.path.dirname(USER_FILE), exist_ok=True)  # Ensure the directory exists
     if not os.path.exists(USER_FILE):
         with open(USER_FILE, "w") as file:
             file.write("testuser:testpassword\n")  # Default user
 
 ensure_user_file()
+
 
 # Load chat history from file
 def load_chat():
