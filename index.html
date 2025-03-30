@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collab Chat</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1f2833;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            text-align: center;
+        }
+        button {
+            transition: 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #66fcf1 !important;
+            color: #1f2833 !important;
+        }
+        input {
+            width: 90%;
+            padding: 12px;
+            margin: 8px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            background: #45a29e;
+            color: white;
+        }
+        .container {
+            background: #0b0c10;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.1);
+            text-align: center;
+            width: 300px;
+        }
+        #chat-box {
+            height: 300px;
+            overflow-y: auto;
+            border-bottom: 1px solid gray;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            background: #1f2833;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            margin-bottom: 12px;
+        }
+        .username {
+            font-size: 12px;
+            color: #66fcf1;
+            margin-bottom: 3px;
+        }
+        .message-content {
+            padding: 10px 15px;
+            border-radius: 20px;
+            background: #45a29e;
+            color: white;
+            word-wrap: break-word;
+            display: inline-block;
+            max-width: 100%;
+        }
+        /* Logged-in user's messages aligned to the right */
+        .my-message-container {
+            align-self: flex-end;
+            text-align: right;
+        }
+        .my-message-content {
+            background: #66fcf1;
+            color: #1f2833;
+        }
+        /* Non-logged-in users' username aligned to the left */
+        .other-message-container {
+            align-self: flex-start;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Section -->
+    <div id="login-container" class="container">
+        <h1 style="font-size: 24px; margin-bottom: 15px; color: #66fcf1;">Collab Chat</h1>
+        <input type="text" id="username" placeholder="Enter username">
+        <input type="password" id="password" placeholder="Enter password">
+        <button onclick="login()" style="width: 95%; padding: 12px; background-color: #66fcf1; color: #1f2833;">
+            Join
+        </button>
+    </div>
+
+    <!-- Chat Section -->
+    <div id="chat-container" class="container" style="display: none; width: 90%; max-width: 400px;">
+        <h2 style="margin-bottom: 10px; color: #66fcf1;">Collab Chat</h2>
+        <div id="chat-box"></div>
+        <div style="display: flex;">
+            <input type="text" id="message" placeholder="Type a message..." onkeypress="handleEnter(event)">
+            <button onclick="sendMessage()" style="margin-left: 10px; padding: 12px; background-color: #66fcf1; color: #1f2833;">
+                Send
+            </button>
+        </div>
+        <button onclick="logout()" style="margin-top: 15px; padding: 12px; width: 100%; background-color: #45a29e; color: #1f2833;">
+            Logout
+        </button>
+    </div>
+
+    <script>
+        const socket = io("http://127.0.0.1:5001");
+        let username = localStorage.getItem("username");
+
+        function login() {
+            const enteredUsername = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+            if (!enteredUsername || !password) {
+                alert("Please enter both username and password!");
+                return;
+            }
+
+            socket.emit("login", { username: enteredUsername, password });
+        }
+
+        socket.on("login_response", (data) => {
+            if (data.status === "error") {
+                alert(data.message);
+                return;
+            }
+
+            username = document.getElementById("username").value.trim();
+            localStorage.setItem("username", username);
+
+            document.getElementById("login-container").style.display = "none";
+            document.getElementById("chat-container").style.display = "block";
+
+            document.getElementById("chat-box").innerHTML = "";
+            localStorage.setItem("chat_history", JSON.stringify(data.chat_history));
+
+            data.chat_history.forEach(addMessage);
+            scrollToBottom();
+        });
+
+        function sendMessage() {
+            const messageInput = document.getElementById("message");
+            const message = messageInput.value.trim();
+
+            if (!username || !message) return;
+
+            socket.emit("send_message", { username, message });
+
+            messageInput.value = ""; // Clear input field
+        }
+
+        function addMessage({ username: sender, message }) {
+            const chatBox = document.getElementById("chat-box");
+            const msgWrapper = document.createElement("div");
+            msgWrapper.classList.add("message");
+
+            const userTag = document.createElement("div");
+            userTag.innerText = sender;
+            userTag.classList.add("username");
+
+            const msgElement = document.createElement("div");
+            msgElement.innerText = message;
+            msgElement.classList.add("message-content");
+
+            if (sender === username) {
+                // Logged-in user's messages (align right)
+                msgWrapper.classList.add("my-message-container");
+                msgElement.classList.add("my-message-content");
+            } else {
+                // Other users' messages (align left)
+                msgWrapper.classList.add("other-message-container");
+            }
+
+            msgWrapper.appendChild(userTag);
+            msgWrapper.appendChild(msgElement);
+            chatBox.appendChild(msgWrapper);
+        }
+
+        function scrollToBottom() {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        socket.on("receive_message", (data) => {
+            let chatHistory = JSON.parse(localStorage.getItem("chat_history")) || [];
+            chatHistory.push(data);
+            localStorage.setItem("chat_history", JSON.stringify(chatHistory));
+            addMessage(data);
+            scrollToBottom();
+        });
+
+        function logout() {
+            localStorage.removeItem("username");
+            localStorage.removeItem("chat_history");
+            document.getElementById("chat-container").style.display = "none";
+            document.getElementById("login-container").style.display = "block";
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+        }
+
+        function handleEnter(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        window.onload = function () {
+            if (username) {
+                document.getElementById("login-container").style.display = "none";
+                document.getElementById("chat-container").style.display = "block";
+
+                let chatHistory = JSON.parse(localStorage.getItem("chat_history")) || [];
+                chatHistory.forEach(addMessage);
+                scrollToBottom();
+            }
+        };
+    </script>
+</body>
+</html>
