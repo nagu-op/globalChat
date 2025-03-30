@@ -86,4 +86,5 @@ def send_chat_history():
     emit("update_chat_history", chat_history)
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True, host="0.0.0.0", port=5001)
+    socketio.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+
