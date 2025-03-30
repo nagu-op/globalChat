@@ -15,7 +15,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Read file paths from environment variables
 CHAT_FILE = os.getenv("CHAT_FILE", "chat_history.txt")  # Default to local file if not set
 USER_FILE = os.getenv("USER_FILE", "users.txt")
+def ensure_user_file():
+    if not os.path.exists(USER_FILE):
+        with open(USER_FILE, "w") as file:
+            file.write("testuser:testpassword\n")  # Default user
 
+ensure_user_file()
 # Load chat history from file
 def load_chat():
     try:
