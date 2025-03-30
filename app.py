@@ -23,7 +23,8 @@ USER_FILE = os.getenv("USER_FILE", "/tmp/users.txt")
 def ensure_user_file():
     if not os.path.exists(USER_FILE):
         with open(USER_FILE, "w") as file:
-            file.write("testuser:testpassword\n")  # Default user
+            file.write("testuser:testpassword\n")
+            file.write("kb:123\n")# Default user
 
 ensure_user_file()
 
